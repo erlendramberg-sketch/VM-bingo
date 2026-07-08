@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Markus og Runa sin VM-Bingo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pitch-dark: #0d3b22;
+    --pitch: #14532d;
+    --pitch-light: #1a6437;
+    --chalk: #f7f5ef;
+    --chalk-dim: rgba(247,245,239,0.55);
+    --nor-red: #ba0c2f;
+    --nor-blue: #002868;
+    --eng-blue: #0b1f4b;
+    --gold: #e4b84c;
+    --marked: #ba0c2f;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height:100%; }
+  body {
+    font-family: 'Archivo', system-ui, sans-serif;
+    background: var(--pitch);
+    color: var(--chalk);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Kritt-linjer på gressmatta */
+  .pitch-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      repeating-linear-gradient(0deg, var(--pitch) 0 64px, var(--pitch-light) 64px 128px);
+    opacity: 1;
+  }
+  .pitch-lines {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.14;
+  }
+  .pitch-lines .circle {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width: 82vmin; height: 82vmin; border: 3px solid var(--chalk); border-radius: 50%;
+  }
+  .pitch-lines .midline {
+    position:absolute; top:50%; left:0; right:0; border-top: 3px solid var(--chalk);
+  }
+  .pitch-lines .spot {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:10px; height:10px; background:var(--chalk); border-radius:50%;
+  }
+
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 560px; margin: 0 auto; padding: 20px 14px 60px;
+  }
+
+  /* Scoreboard-header */
+  .eyebrow {
+    text-align:center; letter-spacing:0.22em; text-transform:uppercase;
+    font-size: 11px; font-weight:600; color: var(--gold); margin-bottom: 10px;
+  }
+  h1 {
+    font-family:'Archivo Black', 'Archivo', sans-serif;
+    text-align:center; font-size: clamp(26px, 7vw, 40px);
+    line-height:1.05; text-transform:uppercase; letter-spacing:0.01em;
+    text-shadow: 0 3px 0 rgba(0,0,0,0.25);
+  }
+  h1 .vm { color: var(--gold); }
+  .scoreboard {
+    display:flex; align-items:stretch; justify-content:center; gap:0;
+    margin: 16px auto 6px; max-width: 400px;
+    border: 2px solid var(--chalk); border-radius: 10px; overflow:hidden;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.25);
+  }
+  .team {
+    flex:1; padding: 10px 6px; text-align:center;
+    font-family:'Archivo Black', sans-serif; font-size: 20px; letter-spacing:0.08em;
+  }
+  .team.nor { background: var(--nor-red); }
+  .team.eng { background: var(--eng-blue); }
+  .team .flag { font-size: 22px; display:block; margin-bottom:2px; }
+  .vs {
+    display:flex; align-items:center; padding: 0 12px;
+    background: var(--chalk); color: var(--pitch-dark);
+    font-family:'Archivo Black', sans-serif; font-size: 14px;
+  }
+  .kickoff { text-align:center; font-size: 12px; color: var(--chalk-dim); margin-bottom: 18px; letter-spacing:0.06em; }
+
+  /* Navn */
+  .name-row { display:flex; gap:8px; margin-bottom: 14px; }
+  .name-row input {
+    flex:1; padding: 11px 14px; border-radius: 8px; border: 2px solid rgba(247,245,239,0.35);
+    background: rgba(0,0,0,0.22); color: var(--chalk); font-family:'Archivo', sans-serif;
+    font-size: 15px; font-weight:600; outline:none;
+  }
+  .name-row input::placeholder { color: var(--chalk-dim); font-weight:400; }
+  .name-row input:focus { border-color: var(--gold); }
+
+  /* Brett */
+  .board {
+    display:grid; grid-template-columns: repeat(4, 1fr); gap: 7px;
+    margin-bottom: 14px;
+  }
+  .cell {
+    position:relative; aspect-ratio: 1 / 1.06;
+    background: var(--chalk); color: #1d2b22;
+    border-radius: 9px; border: none;
+    padding: 6px 5px; cursor: pointer;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:'Archivo', sans-serif; font-weight:600;
+    font-size: clamp(9.5px, 2.6vw, 12.5px); line-height:1.22;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.28);
+    transition: transform 0.08s ease, background 0.15s ease, color 0.15s ease;
+    user-select:none;
+  }
+  .cell:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.28); }
+  .cell.marked {
+    background: var(--marked); color: var(--chalk);
+  }
+  .cell.marked::after {
+    content:''; position:absolute; inset:0; border-radius:9px;
+    border: 2px solid rgba(255,255,255,0.5); pointer-events:none;
+  }
+  .cell.free {
+    background: var(--gold); color: #3a2c05;
+  }
+  .cell.free.marked { background: var(--marked); color: var(--chalk); }
+  .cell.free .heart { font-size: 15px; display:block; }
+  .cell .stamp {
+    position:absolute; top:4px; right:6px; font-size: 13px;
+    opacity:0; transform: scale(2) rotate(-20deg); transition: all 0.18s ease;
+  }
+  .cell.marked .stamp { opacity:1; transform: scale(1) rotate(-12deg); }
+
+  /* Fyll-inn-selv */
+  .cell.custom { background: #dfe9e0; }
+  .cell.custom.empty {
+    background: repeating-linear-gradient(45deg, #dfe9e0 0 8px, #d2dfd4 8px 16px);
+    color: #40584a;
+  }
+  .cell.custom .label {
+    font-size: clamp(8px, 2.1vw, 10px); text-transform:uppercase; letter-spacing:0.05em;
+    color:#40584a; display:block; margin-bottom:3px; font-weight:700;
+  }
+  .cell.custom.marked .label { color: rgba(255,255,255,0.75); }
+  .cell.custom .pick { display:block; font-size: clamp(10px, 2.7vw, 13px); }
+  .cell.custom .edit-hint { font-size: 9px; color:#61796b; display:block; margin-top:3px; }
+  .cell.custom.marked { background: var(--marked); color: var(--chalk); }
+  .cell.custom .pencil {
+    position:absolute; bottom:4px; right:6px; font-size:11px; opacity:0.65;
+  }
+
+  /* Knapper */
+  .actions { display:flex; gap:8px; margin-bottom: 8px; }
+  .btn {
+    flex:1; padding: 12px 10px; border-radius: 8px; border: 2px solid rgba(247,245,239,0.4);
+    background: rgba(0,0,0,0.22); color: var(--chalk);
+    font-family:'Archivo', sans-serif; font-weight:700; font-size: 13px;
+    letter-spacing:0.04em; cursor:pointer; text-transform:uppercase;
+    transition: background 0.15s ease;
+  }
+  .btn:active { background: rgba(0,0,0,0.4); }
+  .hint { text-align:center; font-size: 12px; color: var(--chalk-dim); line-height:1.5; }
+
+  /* BINGO-banner */
+  .bingo-banner {
+    position: fixed; inset: 0; z-index: 50;
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    background: rgba(13,59,34,0.88); backdrop-filter: blur(3px);
+    text-align:center; padding: 24px;
+  }
+  .bingo-banner.show { display:flex; }
+  .bingo-banner .big {
+    font-family:'Archivo Black', sans-serif; font-size: clamp(52px, 16vw, 96px);
+    color: var(--gold); text-transform:uppercase;
+    text-shadow: 0 5px 0 rgba(0,0,0,0.35);
+    animation: pop 0.4s cubic-bezier(0.2, 2.2, 0.4, 1) both;
+  }
+  .bingo-banner .sub { font-size: 17px; font-weight:600; margin-top: 8px; color: var(--chalk); }
+  .bingo-banner .btn { flex:none; margin-top: 26px; padding: 13px 30px; border-color: var(--gold); }
+  @keyframes pop { from { transform: scale(0.3); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+  /* Konfetti */
+  .confetti {
+    position: fixed; top: -14px; z-index: 60; pointer-events:none;
+    width: 9px; height: 15px; border-radius: 2px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0.85; }
+  }
+
+  /* Redigeringsdialog for egne felt */
+  .modal {
+    position: fixed; inset:0; z-index: 40; display:none;
+    align-items:center; justify-content:center; padding: 20px;
+    background: rgba(0,0,0,0.55);
+  }
+  .modal.show { display:flex; }
+  .modal .card {
+    background: var(--chalk); color:#1d2b22; border-radius: 14px;
+    padding: 20px; width: 100%; max-width: 360px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .modal .card h3 { font-family:'Archivo Black', sans-serif; font-size: 17px; margin-bottom: 4px; }
+  .modal .card p { font-size: 13px; color:#4a5c50; margin-bottom: 12px; }
+  .modal .card input {
+    width:100%; padding: 12px 13px; border-radius: 8px; border: 2px solid #b9c6bc;
+    font-family:'Archivo', sans-serif; font-size: 16px; font-weight:600; outline:none;
+  }
+  .modal .card input:focus { border-color: var(--pitch); }
+  .modal .row { display:flex; gap:8px; margin-top: 14px; }
+  .modal .row button {
+    flex:1; padding: 12px; border-radius: 8px; border:none; cursor:pointer;
+    font-family:'Archivo', sans-serif; font-weight:700; font-size: 14px;
+  }
+  .modal .save { background: var(--pitch); color: var(--chalk); }
+  .modal .cancel { background: #e3e8e4; color:#3d4f44; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .confetti { display:none; }
+    .bingo-banner .big { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pitch-bg"></div>
+<div class="pitch-lines">
+  <div class="midline"></div>
+  <div class="circle"></div>
+  <div class="spot"></div>
+</div>
+
+<div class="wrap">
+  <div class="eyebrow">Bryllupsfest &nbsp;•&nbsp; Kampkveld</div>
+  <h1>Markus &amp; Runa sin <span class="vm">VM-Bingo</span></h1>
+
+  <div class="scoreboard">
+    <div class="team nor"><span class="flag">🇳🇴</span>NOR</div>
+    <div class="vs">VS</div>
+    <div class="team eng"><span class="flag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>ENG</div>
+  </div>
+  <div class="kickoff">VM 2026 · Lørdag · Heia Norge!</div>
+
+  <div class="name-row">
+    <input id="playerName" type="text" placeholder="Skriv navnet ditt her" maxlength="30">
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="actions">
+    <button class="btn" id="shuffleBtn">🔀 Nytt brett</button>
+  </div>
+  <p class="hint">
+    Trykk på en rute når det skjer i kampen. De stiplede rutene fyller du inn selv før avspark.<br>
+    Fire på rad = <strong>BINGO!</strong> Rop høyt og krev heder fra brudeparet. 🏆<br>
+    <em>Tips: ta en skjermdump av brettet ditt før kampen starter.</em>
+  </p>
+</div>
+
+<!-- Redigering av egne felt -->
+<div class="modal" id="modal">
+  <div class="card">
+    <h3 id="modalTitle">Fyll inn</h3>
+    <p id="modalDesc"></p>
+    <input id="modalInput" type="text" maxlength="30" placeholder="Skriv her...">
+    <div class="row">
+      <button class="cancel" id="modalCancel">Avbryt</button>
+      <button class="save" id="modalSave">Lagre</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bingo-banner -->
+<div class="bingo-banner" id="bingoBanner">
+  <div class="big">Bingo!</div>
+  <div class="sub" id="bingoSub">Rop det høyt – hele selskapet skal høre det! 🎉</div>
+  <button class="btn" id="bingoClose">Tilbake til kampen</button>
+</div>
+
+<script>
+// ---------- Rutepool (forhåndsutfylte) ----------
+const POOL = [
+  "Haaland scorer",
+  "Ødegaard med assist",
+  "Sørloth header på mål",
+  "Mål i første omgang",
+  "Mål etter 85. minutt",
+  "Rødt kort",
+  "5 eller flere gule kort",
+  "VAR-sjekk som tar over 2 min",
+  "Straffespark dømmes",
+  "Mål annullert for offside",
+  "Skudd i stanga/tverrliggeren",
+  "Norsk keeper med kjemperedning",
+  "Selvmål",
+  "Mål på corner/dødball",
+  "Kane scorer",
+  "Bellingham klager til dommeren",
+  "Engelsk supporter uten skjorte på TV",
+  "Kommentatoren nevner Drillo",
+  "Kommentatoren sier «It's coming home»",
+  "Norsk spiller får gult for drakttrekk",
+  "Trener filmes mens han rister på hodet",
+  "Innbytter scorer",
+  "Kampen går til ekstraomganger",
+  "Nordmann kåret til banens beste",
+  "Noen i bryllupet roper «HAALAND!»",
+  "Markus jubler før alle andre",
+  "Runa har den beste kommentaren",
+  "Noen søler drikke under jubel",
+  "En gjest nekter å se straffesparket",
+  "Hele lokalet synger nasjonalsangen"
+];
+
+// ---------- Fyll-inn-selv-felt ----------
+const CUSTOM_SLOTS = [
+  { label: "Min målscorer", desc: "Hvem scorer for Norge? Ruta kan krysses når spilleren din scorer." },
+  { label: "Sluttresultat", desc: "Tipp resultatet, f.eks. 2–1. Krysses av ved full tid hvis du traff." },
+  { label: "Første gule kort", desc: "Hvilken spiller får kampens første gule kort?" },
+  { label: "Banens beste", desc: "Hvem blir kåret til banens beste spiller?" }
+];
+
+const SIZE = 4;
+const FREE_INDEX = 5; // fast plassering av gratisruta
+let cells = []; // { type: 'pool'|'custom'|'free', text, label, pick, marked }
+let celebrated = new Set(); // linjer som allerede har utløst feiring
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildBoard() {
+  const total = SIZE * SIZE;
+  const customPositions = pickCustomPositions(total);
+  const poolTexts = shuffle(POOL).slice(0, total - 1 - CUSTOM_SLOTS.length);
+  cells = [];
+  let poolIdx = 0, customIdx = 0;
+  for (let i = 0; i < total; i++) {
+    if (i === FREE_INDEX) {
+      cells.push({ type: 'free', text: 'Skål for brudeparet!', marked: false });
+    } else if (customPositions.includes(i)) {
+      const slot = CUSTOM_SLOTS[customIdx++];
+      cells.push({ type: 'custom', label: slot.label, desc: slot.desc, pick: '', marked: false });
+    } else {
+      cells.push({ type: 'pool', text: poolTexts[poolIdx++], marked: false });
+    }
+  }
+  celebrated = new Set();
+  render();
+}
+
+function pickCustomPositions(total) {
+  const candidates = [];
+  for (let i = 0; i < total; i++) if (i !== FREE_INDEX) candidates.push(i);
+  return shuffle(candidates).slice(0, CUSTOM_SLOTS.length);
+}
+
+function render() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cells.forEach((c, i) => {
+    const el = document.createElement('button');
+    el.className = 'cell';
+    el.setAttribute('aria-pressed', c.marked ? 'true' : 'false');
+    if (c.marked) el.classList.add('marked');
+    if (c.type === 'free') {
+      el.classList.add('free');
+      el.innerHTML = '<span><span class="heart">💍</span>' + c.text + '</span><span class="stamp">✕</span>';
+    } else if (c.type === 'custom') {
+      el.classList.add('custom');
+      if (!c.pick) {
+        el.classList.add('empty');
+        el.innerHTML = '<span><span class="label">' + c.label + '</span><span class="pick">Trykk for å fylle inn</span></span>';
+      } else {
+        el.innerHTML = '<span><span class="label">' + c.label + '</span><span class="pick">' + escapeHtml(c.pick) + '</span></span><span class="pencil">✏️</span><span class="stamp">✕</span>';
+      }
+    } else {
+      el.innerHTML = '<span>' + c.text + '</span><span class="stamp">✕</span>';
+    }
+    el.addEventListener('click', () => onCellClick(i));
+    board.appendChild(el);
+  });
+}
+
+let editingIndex = null;
+
+function onCellClick(i) {
+  const c = cells[i];
+  if (c.type === 'custom' && !c.pick) {
+    openModal(i);
+    return;
+  }
+  if (c.type === 'custom' && c.pick && !c.marked) {
+    // kort trykk = kryss av; redigering via ✏️ håndteres med langt trykk-alternativ: dobbelklikk
+  }
+  c.marked = !c.marked;
+  render();
+  if (c.marked) checkBingo();
+}
+
+// Dobbeltklikk på eget felt for å redigere
+document.getElementById('board').addEventListener('dblclick', (e) => {
+  const idx = [...document.getElementById('board').children].indexOf(e.target.closest('.cell'));
+  if (idx >= 0 && cells[idx].type === 'custom') {
+    cells[idx].marked = false;
+    openModal(idx);
+  }
+});
+
+function openModal(i) {
+  editingIndex = i;
+  const c = cells[i];
+  document.getElementById('modalTitle').textContent = c.label;
+  document.getElementById('modalDesc').textContent = c.desc;
+  const input = document.getElementById('modalInput');
+  input.value = c.pick || '';
+  document.getElementById('modal').classList.add('show');
+  setTimeout(() => input.focus(), 50);
+}
+
+document.getElementById('modalSave').addEventListener('click', () => {
+  const val = document.getElementById('modalInput').value.trim();
+  if (editingIndex !== null && val) {
+    cells[editingIndex].pick = val;
+  }
+  closeModal();
+  render();
+});
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('modalSave').click();
+});
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  editingIndex = null;
+}
+
+// ---------- Bingo-sjekk ----------
+function lines() {
+  const L = [];
+  for (let r = 0; r < SIZE; r++) L.push([...Array(SIZE)].map((_, c) => r * SIZE + c));
+  for (let c = 0; c < SIZE; c++) L.push([...Array(SIZE)].map((_, r) => r * SIZE + c));
+  L.push([...Array(SIZE)].map((_, i) => i * SIZE + i));
+  L.push([...Array(SIZE)].map((_, i) => i * SIZE + (SIZE - 1 - i)));
+  return L;
+}
+
+function checkBingo() {
+  const newLines = lines().filter((line, idx) =>
+    line.every(i => cells[i].marked) && !celebrated.has(idx)
+  );
+  if (newLines.length === 0) return;
+  lines().forEach((line, idx) => {
+    if (line.every(i => cells[i].marked)) celebrated.add(idx);
+  });
+  const name = document.getElementById('playerName').value.trim();
+  document.getElementById('bingoSub').textContent = name
+    ? name + ' – rop det høyt, hele selskapet skal høre det! 🎉'
+    : 'Rop det høyt – hele selskapet skal høre det! 🎉';
+  document.getElementById('bingoBanner').classList.add('show');
+  launchConfetti();
+}
+
+document.getElementById('bingoClose').addEventListener('click', () => {
+  document.getElementById('bingoBanner').classList.remove('show');
+});
+
+// ---------- Konfetti ----------
+const CONFETTI_COLORS = ['#ba0c2f', '#f7f5ef', '#002868', '#e4b84c'];
+function launchConfetti() {
+  for (let i = 0; i < 90; i++) {
+    const d = document.createElement('div');
+    d.className = 'confetti';
+    d.style.left = Math.random() * 100 + 'vw';
+    d.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    d.style.animationDuration = (2.2 + Math.random() * 2.5) + 's';
+    d.style.animationDelay = (Math.random() * 0.9) + 's';
+    d.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 6000);
+  }
+}
+
+// ---------- Nytt brett ----------
+document.getElementById('shuffleBtn').addEventListener('click', () => {
+  const anyMarked = cells.some(c => c.marked && c.type !== 'free');
+  const anyPick = cells.some(c => c.type === 'custom' && c.pick);
+  if ((anyMarked || anyPick) && !confirm('Dette lager et helt nytt brett og sletter det du har fylt inn. Sikker?')) return;
+  buildBoard();
+});
+
+buildBoard();
+</script>
+</body>
+</html>
