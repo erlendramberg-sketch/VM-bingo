@@ -371,27 +371,17 @@ const POOL = [
   "Noen blir slått tunnel på",
   "Innbytter scorer",
   "Kampen går til ekstraomganger",
-  "Nordmann kåret til banens beste",
   "Kronprinsen ror",
   "Norge-fansen ror",
-  "«Miami» av Will Smith spilles",
-  "«Kygo Jo» spilles",
-  "Noen i lokalet starter en chant",
-  "Noen i rommet roper «HAALAND!»",
-  "Markus jubler før alle andre",
-  "Markus synger «Bønda i fra nord»",
-  "Falchener tar ormen",
-  "Noen søler drikke under jubel",
-  "En gjest nekter å se straffesparket",
-  "Hele lokalet synger nasjonalsangen"
+  "Nordmenn med vikinghjelm på TV",
+  "Fansen synger «Miami» på tribunen",
+  "«Kygo Jo» høres fra tribunen"
 ];
 
 // ---------- Fyll-inn-selv-felt ----------
 const CUSTOM_SLOTS = [
   { label: "Min målscorer", desc: "Hvem scorer for Norge? Ruta kan krysses når spilleren din scorer." },
-  { label: "Sluttresultat", desc: "Tipp resultatet, f.eks. 2–1. Krysses av ved full tid hvis du traff." },
-  { label: "Første gule kort", desc: "Hvilken spiller får kampens første gule kort?" },
-  { label: "Banens beste", desc: "Hvem blir kåret til banens beste spiller?" }
+  { label: "Første gule kort", desc: "Hvilken spiller får kampens første gule kort?" }
 ];
 
 const SIZE = 4;
@@ -543,8 +533,8 @@ function checkBingo() {
 
   // Bygg SMS-lenke med forhåndsutfylt melding
   const smsBody = 'BINGO\n'
-    + 'Navn: ' + (name || '[Fornavn, Etternavn]') + '\n'
-    + 'Kampsted: [Hvor ser du kamp?]';
+    + 'Navn: ' + (name || 'Fornavn') + '\n'
+    + 'Husk å legge ved bilde🌟';
   document.getElementById('smsLink').href = 'sms:+4795873324?body=' + encodeURIComponent(smsBody);
 
   document.getElementById('bingoBanner').classList.add('show');
