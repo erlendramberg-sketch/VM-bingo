@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Markus og Runa sin VM-Bingo</title>
+<title>VM-Bingo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
     --pitch-dark: #0d3b22;
@@ -164,6 +165,39 @@
   .btn:active { background: rgba(0,0,0,0.4); }
   .hint { text-align:center; font-size: 12px; color: var(--chalk-dim); line-height:1.5; }
 
+  /* Premieboks */
+  .prize {
+    margin: 14px 0 16px; padding: 14px 16px;
+    border: 2px solid var(--gold); border-radius: 12px;
+    background: rgba(0,0,0,0.22);
+  }
+  .prize-title {
+    font-family:'Archivo Black', sans-serif; font-size: 15px;
+    color: var(--gold); text-transform:uppercase; letter-spacing:0.05em;
+    margin-bottom: 8px;
+  }
+  .prize p { font-size: 13px; line-height: 1.55; color: var(--chalk); }
+  .prize p + p { margin-top: 8px; }
+  .prize-consolation { color: var(--chalk-dim) !important; }
+  .prize a { color: var(--gold); font-weight: 700; }
+
+  /* Premie-CTA i banneret */
+  .prize-cta { margin-top: 22px; max-width: 340px; }
+  .sms-btn {
+    display:block; text-decoration:none; text-align:center;
+    background: var(--gold) !important; color: #3a2c05 !important;
+    border-color: var(--gold) !important;
+    padding: 15px 20px !important; font-size: 15px !important;
+  }
+  .share-btn {
+    display:block; width:100%; margin-top: 10px; text-align:center;
+    background: rgba(0,0,0,0.35) !important; color: var(--chalk) !important;
+    border-color: var(--chalk) !important;
+    padding: 13px 20px !important; font-size: 14px !important;
+  }
+  .prize-note { font-size: 12px; color: var(--chalk-dim); margin-top: 10px; line-height: 1.5; }
+  .prize-note a { color: var(--gold); font-weight:700; }
+
   /* BINGO-banner */
   .bingo-banner {
     position: fixed; inset: 0; z-index: 50;
@@ -234,9 +268,10 @@
 </div>
 
 <div class="wrap">
-  <div class="eyebrow">Bryllupsfest &nbsp;•&nbsp; Kampkveld</div>
-  <h1>Markus &amp; Runa sin <span class="vm">VM-Bingo</span></h1>
+  <div class="eyebrow">VM 2026 &nbsp;•&nbsp; Kampkveld</div>
+  <h1><span class="vm">VM-Bingo</span></h1>
 
+  <div id="captureArea">
   <div class="scoreboard">
     <div class="team nor"><span class="flag">🇳🇴</span>NOR</div>
     <div class="vs">VS</div>
@@ -249,14 +284,29 @@
   </div>
 
   <div class="board" id="board"></div>
+  </div><!-- /captureArea -->
 
   <div class="actions">
     <button class="btn" id="shuffleBtn">🔀 Nytt brett</button>
   </div>
+
+  <div class="prize">
+    <div class="prize-title">🧣 Vinn skjerf fra VM-portalen</div>
+    <p>
+      De <strong>tre første</strong> som roper BINGO vinner gratis VM-skjerf!
+      Får du bingo, dukker det opp en knapp som sender <strong>«BINGO» + navnet ditt</strong>
+      på SMS til <strong>958 73 324</strong>. Var meldingen din blant de tre første, er skjerfet ditt.
+    </p>
+    <p class="prize-consolation">
+      Kom du ikke blant de tre første? Da får du skjerf til <strong>99 kr</strong> med koden
+      <strong>BINGO</strong> på <a href="https://vmportalen.no" target="_blank" rel="noopener">vmportalen.no</a>.
+    </p>
+  </div>
+
   <p class="hint">
     Trykk på en rute når det skjer i kampen. De stiplede rutene fyller du inn selv før avspark.<br>
     Du kan stokke om brettet maks 3 ganger — så er det låst.<br>
-    Fire på rad = <strong>BINGO!</strong> Rop høyt og krev heder fra brudeparet. 🏆<br>
+    Fire på rad = <strong>BINGO!</strong> Rop høyt så alle hører det. 🏆<br>
     <em>Tips: ta en skjermdump av brettet ditt før kampen starter.</em>
   </p>
 </div>
@@ -277,7 +327,15 @@
 <!-- Bingo-banner -->
 <div class="bingo-banner" id="bingoBanner">
   <div class="big">Bingo!</div>
-  <div class="sub" id="bingoSub">Rop det høyt – hele selskapet skal høre det! 🎉</div>
+  <div class="sub" id="bingoSub">Rop det høyt – hele rommet skal høre det! 🎉</div>
+  <div class="prize-cta">
+    <a class="btn sms-btn" id="smsLink" href="#">📱 Send BINGO-melding nå</a>
+    <button class="btn share-btn" id="shareBoardBtn">📸 Del bilde av brettet</button>
+    <p class="prize-note">De tre første meldingene til 958 73 324 vinner gratis skjerf fra VM-portalen.
+      Legg ved bilde av brettet ditt som bevis — bruk knappen over.</p>
+    <p class="prize-note">Ikke blant de tre første? Skjerf til 99 kr med koden <strong>BINGO</strong> på
+      <a href="https://vmportalen.no" target="_blank" rel="noopener">vmportalen.no</a></p>
+  </div>
   <button class="btn" id="bingoClose">Tilbake til kampen</button>
 </div>
 
@@ -317,7 +375,7 @@ const POOL = [
   "«Miami» av Will Smith spilles",
   "«Kygo Jo» spilles",
   "Noen i lokalet starter en chant",
-  "Noen i bryllupet roper «HAALAND!»",
+  "Noen i rommet roper «HAALAND!»",
   "Markus jubler før alle andre",
   "Markus synger «Bønda i fra nord»",
   "Falchener tar ormen",
@@ -356,7 +414,7 @@ function buildBoard() {
   let poolIdx = 0, customIdx = 0;
   for (let i = 0; i < total; i++) {
     if (i === FREE_INDEX) {
-      cells.push({ type: 'free', text: 'Skål for brudeparet!', marked: false });
+      cells.push({ type: 'free', text: 'Skål!', marked: false });
     } else if (customPositions.includes(i)) {
       const slot = CUSTOM_SLOTS[customIdx++];
       cells.push({ type: 'custom', label: slot.label, desc: slot.desc, pick: '', marked: false });
@@ -374,6 +432,10 @@ function pickCustomPositions(total) {
   return shuffle(candidates).slice(0, CUSTOM_SLOTS.length);
 }
 
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function render() {
   const board = document.getElementById('board');
   board.innerHTML = '';
@@ -384,7 +446,7 @@ function render() {
     if (c.marked) el.classList.add('marked');
     if (c.type === 'free') {
       el.classList.add('free');
-      el.innerHTML = '<span><span class="heart">💍</span>' + c.text + '</span><span class="stamp">✕</span>';
+      el.innerHTML = '<span><span class="heart">🍻</span>' + c.text + '</span><span class="stamp">✕</span>';
     } else if (c.type === 'custom') {
       el.classList.add('custom');
       if (!c.pick) {
@@ -474,11 +536,52 @@ function checkBingo() {
   });
   const name = document.getElementById('playerName').value.trim();
   document.getElementById('bingoSub').textContent = name
-    ? name + ' – rop det høyt, hele selskapet skal høre det! 🎉'
-    : 'Rop det høyt – hele selskapet skal høre det! 🎉';
+    ? name + ' – rop det høyt, hele rommet skal høre det! 🎉'
+    : 'Rop det høyt – hele rommet skal høre det! 🎉';
+
+  // Bygg SMS-lenke med forhåndsutfylt melding
+  const smsBody = 'BINGO\n'
+    + 'Navn: ' + (name || '[Fornavn, Etternavn]') + '\n'
+    + 'Kampsted: [Hvor ser du kamp?]';
+  document.getElementById('smsLink').href = 'sms:+4795873324?body=' + encodeURIComponent(smsBody);
+
   document.getElementById('bingoBanner').classList.add('show');
   launchConfetti();
 }
+
+// ---------- Del brettet som bilde ----------
+document.getElementById('shareBoardBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('shareBoardBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Lager bilde...';
+  btn.disabled = true;
+  try {
+    const canvas = await html2canvas(document.getElementById('captureArea'), {
+      backgroundColor: '#14532d',
+      scale: 2,
+      useCORS: true
+    });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const name = document.getElementById('playerName').value.trim();
+    const file = new File([blob], 'vm-bingo.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        text: name ? 'BINGO! ' + name : 'BINGO!'
+      });
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'vm-bingo.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  } catch (e) {
+    // Bruker avbrøt delingen eller noe gikk galt — ufarlig
+  }
+  btn.textContent = originalText;
+  btn.disabled = false;
+});
 
 document.getElementById('bingoClose').addEventListener('click', () => {
   document.getElementById('bingoBanner').classList.remove('show');
