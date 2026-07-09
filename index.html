@@ -195,6 +195,8 @@
     border-color: var(--chalk) !important;
     padding: 13px 20px !important; font-size: 14px !important;
   }
+  .locked { opacity: 0.45; }
+  .step-done { background: rgba(0,0,0,0.35) !important; color: var(--chalk) !important; border-color: #6fbf8a !important; }
   .prize-note { font-size: 12px; color: var(--chalk-dim); margin-top: 10px; line-height: 1.5; }
   .prize-note a { color: var(--gold); font-weight:700; }
 
@@ -329,10 +331,10 @@
   <div class="big">Bingo!</div>
   <div class="sub" id="bingoSub">Rop det høyt – hele rommet skal høre det! 🎉</div>
   <div class="prize-cta">
-    <a class="btn sms-btn" id="smsLink" href="#">📱 Send BINGO-melding nå</a>
-    <button class="btn share-btn" id="shareBoardBtn">📸 Del bilde av brettet</button>
-    <p class="prize-note">De tre første meldingene til 958 73 324 vinner gratis skjerf fra VM-portalen.
-      Legg ved bilde av brettet ditt som bevis — bruk knappen over.</p>
+    <button class="btn sms-btn" id="shareBoardBtn">📸 Steg 1 · Lagre bilde av brettet</button>
+    <a class="btn share-btn locked" id="smsLink" href="#">🔒 Steg 2 · Send BINGO-melding</a>
+    <p class="prize-note" id="stepHint">Bildet er beviset ditt — lagre det først, så åpner steg 2 seg.</p>
+    <p class="prize-note">De tre første meldingene til 958 73 324 vinner gratis skjerf fra VM-portalen.</p>
     <p class="prize-note">Ikke blant de tre første? Skjerf til 99 kr med koden <strong>BINGO</strong> på
       <a href="https://vmportalen.no" target="_blank" rel="noopener">vmportalen.no</a></p>
   </div>
@@ -549,9 +551,23 @@ function checkBingo() {
   launchConfetti();
 }
 
-// ---------- Del brettet som bilde ----------
+// ---------- To-stegs premieflyt: 1) bilde, 2) SMS ----------
+let imageSaved = false;
+
+function unlockStep2() {
+  imageSaved = true;
+  const share = document.getElementById('shareBoardBtn');
+  const sms = document.getElementById('smsLink');
+  share.textContent = '✓ Bilde lagret';
+  share.classList.add('step-done');
+  sms.classList.remove('locked');
+  sms.textContent = '📱 Steg 2 · Send BINGO-melding nå';
+  document.getElementById('stepHint').textContent = 'Bra! Send meldingen nå — og legg ved bildet du nettopp lagret.';
+}
+
 document.getElementById('shareBoardBtn').addEventListener('click', async () => {
   const btn = document.getElementById('shareBoardBtn');
+  if (imageSaved) return;
   const originalText = btn.textContent;
   btn.textContent = 'Lager bilde...';
   btn.disabled = true;
@@ -569,18 +585,31 @@ document.getElementById('shareBoardBtn').addEventListener('click', async () => {
         files: [file],
         text: name ? 'BINGO! ' + name : 'BINGO!'
       });
+      unlockStep2();
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'vm-bingo.png';
       a.click();
       URL.revokeObjectURL(a.href);
+      unlockStep2();
     }
   } catch (e) {
-    // Bruker avbrøt delingen eller noe gikk galt — ufarlig
+    // Brukeren avbrøt delingsarket — behold steg 1 åpent så de kan prøve igjen
+    btn.textContent = originalText;
   }
-  btn.textContent = originalText;
   btn.disabled = false;
+});
+
+// Steg 2 er låst til bildet er lagret
+document.getElementById('smsLink').addEventListener('click', (e) => {
+  if (!imageSaved) {
+    e.preventDefault();
+    const hint = document.getElementById('stepHint');
+    hint.textContent = '📸 Lagre bildet først (steg 1) — det er beviset ditt!';
+    hint.style.color = 'var(--gold)';
+    setTimeout(() => { hint.style.color = ''; }, 2000);
+  }
 });
 
 document.getElementById('bingoClose').addEventListener('click', () => {
