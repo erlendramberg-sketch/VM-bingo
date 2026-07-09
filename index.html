@@ -255,6 +255,7 @@
   </div>
   <p class="hint">
     Trykk på en rute når det skjer i kampen. De stiplede rutene fyller du inn selv før avspark.<br>
+    Du kan stokke om brettet maks 3 ganger — så er det låst.<br>
     Fire på rad = <strong>BINGO!</strong> Rop høyt og krev heder fra brudeparet. 🏆<br>
     <em>Tips: ta en skjermdump av brettet ditt før kampen starter.</em>
   </p>
@@ -284,32 +285,42 @@
 // ---------- Rutepool (forhåndsutfylte) ----------
 const POOL = [
   "Haaland scorer",
+  "Haaland scorer hattrick",
   "Ødegaard med assist",
   "Sørloth header på mål",
   "Mål i første omgang",
-  "Mål etter 85. minutt",
-  "Rødt kort",
+  "Mål i tilleggstiden",
+  "Norge får et rødt kort",
   "5 eller flere gule kort",
   "VAR-sjekk som tar over 2 min",
   "Straffespark dømmes",
-  "Mål annullert for offside",
+  "Mål blir annullert med VAR",
   "Skudd i stanga/tverrliggeren",
-  "Norsk keeper med kjemperedning",
+  "Nyland med kjemperedning",
   "Selvmål",
   "Mål på corner/dødball",
   "Kane scorer",
   "Bellingham klager til dommeren",
-  "Engelsk supporter uten skjorte på TV",
+  "Bellingham og Haaland filmes sammen",
+  "Infantino og Alfie Haaland filmes sammen",
+  "Engelske supportere i baris",
   "Kommentatoren nevner Drillo",
+  "Kommentatoren snakker om 2–0 i 1993",
   "Kommentatoren sier «It's coming home»",
   "Norsk spiller får gult for drakttrekk",
-  "Trener filmes mens han rister på hodet",
+  "Noen blir slått tunnel på",
   "Innbytter scorer",
   "Kampen går til ekstraomganger",
   "Nordmann kåret til banens beste",
+  "Kronprinsen ror",
+  "Norge-fansen ror",
+  "«Miami» av Will Smith spilles",
+  "«Kygo Jo» spilles",
+  "Noen i lokalet starter en chant",
   "Noen i bryllupet roper «HAALAND!»",
   "Markus jubler før alle andre",
-  "Runa har den beste kommentaren",
+  "Markus synger «Bønda i fra nord»",
+  "Falchener tar ormen",
   "Noen søler drikke under jubel",
   "En gjest nekter å se straffesparket",
   "Hele lokalet synger nasjonalsangen"
@@ -489,15 +500,34 @@ function launchConfetti() {
   }
 }
 
-// ---------- Nytt brett ----------
+// ---------- Nytt brett (maks 3 ganger) ----------
+let shufflesLeft = 3;
+
+function updateShuffleBtn() {
+  const btn = document.getElementById('shuffleBtn');
+  if (shufflesLeft <= 0) {
+    btn.textContent = '🔒 Brettet er låst';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'default';
+  } else {
+    btn.textContent = '🔀 Nytt brett (' + shufflesLeft + ' igjen)';
+  }
+}
+
 document.getElementById('shuffleBtn').addEventListener('click', () => {
+  if (shufflesLeft <= 0) return;
   const anyMarked = cells.some(c => c.marked && c.type !== 'free');
   const anyPick = cells.some(c => c.type === 'custom' && c.pick);
-  if ((anyMarked || anyPick) && !confirm('Dette lager et helt nytt brett og sletter det du har fylt inn. Sikker?')) return;
+  const warning = 'Dette lager et helt nytt brett og sletter det du har fylt inn. Du har ' + shufflesLeft + ' omstokking(er) igjen. Sikker?';
+  if ((anyMarked || anyPick) && !confirm(warning)) return;
+  shufflesLeft--;
   buildBoard();
+  updateShuffleBtn();
 });
 
 buildBoard();
+updateShuffleBtn();
 </script>
 </body>
 </html>
